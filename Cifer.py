@@ -77,7 +77,6 @@ match escolha:
                 return matriz
 
             matriz_key = cria_matriz(bit_sequence_key)
-            print(matriz_key)
 
             # FUNÇÃO PARA DESLOCAR AS LINHAS ASSIM COMO PEDIDO NO ALGORITMO AES
             def shift_rows(state):
@@ -150,7 +149,16 @@ match escolha:
             
             #FUNÇÃO QUE DEFINE AS SUBCHAVES DE EXPANÇÃO PARA CADA RODADA DO AES
             def key_expansion(key, s_box):
-                round_constants = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36]
+                round_constants = ['00000001', 
+                                    '00000010', 
+                                    '00000100', 
+                                    '00001000', 
+                                    '00010000', 
+                                    '00100000', 
+                                    '01000000', 
+                                    '10000000', 
+                                    '00011011', 
+                                    '00110110']
                 expanded_key = [key]
 
                 # Realiza a expansão da chave
@@ -160,19 +168,19 @@ match escolha:
 
                     # Rotação da coluna
                     temp = prev_key[1:] + [prev_key[0]]
+                    
 
                     # Substituição pelos valores da S-Box
-                    for byte in temp:
-                        new_byte = s_box[int(byte, 2)]
-                        new_key.append(format(new_byte, '08b'))
+                    new_key = sub_bytes(temp, s_box)
 
                     # Aplica XOR com o round constant
                     round_constant = round_constants[i]
-                    new_key[0] = format(int(new_key[0], 2) ^ round_constant, '08b')
+                    new_key[0][0] = format(int(new_key[0][0], 2) ^ int(round_constant, 2), '08b')
 
                     # Aplica XOR com a palavra anterior da chave
-                    for j in range(4):
-                        new_key[j] = format(int(new_key[j], 2) ^ int(prev_key[j], 2), '08b')
+                    for i in range(4):
+                        for j in range(4):
+                            new_key[i][j] = format(int(new_key[i][j], 2) ^ int(prev_key[i][j], 2), '08b')
 
                     expanded_key.append(new_key)
 
@@ -224,8 +232,6 @@ match escolha:
 
 
 
-
-                print(matriz_mesage)
 
         if escolha_AES == 3:
             print()
@@ -403,5 +409,3 @@ match escolha:
         print("ola mundo3")
     case 4:
         print("ola mundo4")
-
-print(bytes("come meu cuzin", 'utf-8'))
