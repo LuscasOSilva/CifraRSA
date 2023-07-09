@@ -1,14 +1,38 @@
 import os
-'''
-#CONVERTER BITS EM STRING NORMAL
-byte_sequence = int(bit_sequence_mesage, 2).to_bytes((len(bit_sequence_mesage) + 7) // 8, 'big')
-string = byte_sequence.decode('utf-8')
+import random
+import math
 
-'''
+# função percorre a sequência de bits de 8 em 8 bits, 
+# converte cada byte binário em um valor decimal e, em seguida, 
+# converte o valor decimal em um caractere
+def bits_to_string(bit_string):
+    byte_list = []
+    for i in range(0, len(bit_string), 8):
+        byte = bit_string[i:i+8]
+        decimal_value = int(byte, 2)
+        character = chr(decimal_value)
+        byte_list.append(character)
+
+    message = ''.join(byte_list)
+    return message
 
 escolha = int(input("Escolha: \n1 - Cifração e decifração AES, chave 128 bits \n2 - Geração de chaves e cifra RSA \n3 - Assinatura RSA \n4 - Verificação\n"))
 match escolha:
     case 1:
+        # Transformação final, de uma string de bits para uma string hexadecimal
+        def bits_to_hex(bit_string):
+            hex_string = ''
+            # Percorre a string de bits de 4 em 4 bits
+            for i in range(0, len(bit_string), 4):
+                # Extrai o nibble de 4 bits
+                nibble = bit_string[i:i+4]
+                # Converte o nibble de binário para hexadecimal
+                nibble_hex = hex(int(nibble, 2))[2:]
+                # Adiciona o nibble hexadecimal à string de hexadecimais
+                hex_string += nibble_hex
+
+            return hex_string
+
 
         # S-Box do AES
         s_box = [
@@ -57,6 +81,16 @@ match escolha:
             mesage = input("Digite a mensagem a ser cifrada: ")
             key = input("Digite a chave AES de 128 bits(16 caracteres): ")
 
+            def message_to_bits(message):
+                bit_string = ''
+                for char in message:
+                    decimal_value = ord(char)
+                    binary_value = bin(decimal_value)[2:].zfill(8)
+                    bit_string += binary_value
+
+                return bit_string
+
+            print(message_to_bits(mesage))
             # Chave em bits
             bit_sequence_key = ""
             for byte_sequence in key.encode('utf-8'):
@@ -66,7 +100,12 @@ match escolha:
             if (len(mesage)-1) % 16 != 0:
                 mesage = mesage + (((16 - len(mesage)) % 16) * " ")
             
-            def cria_matriz(mesage):
+            # Completando a chave com os espaços faltantes para 16 bytes
+            if (len(key)-1) % 16 != 0:
+                key = key + (((16 - len(key)) % 16) * " ")
+
+            # Função que transforma a mensagem e a chave em blocos 4x4
+            def create_matriz(mesage):
                 matriz = [[0 for _ in range(4)] for _ in range(4)]
 
                 # Preenchimento da matriz com os valores da mensagem em bits
@@ -76,7 +115,7 @@ match escolha:
                         mesage = mesage[8:]
                 return matriz
 
-            matriz_key = cria_matriz(bit_sequence_key)
+            matriz_key = create_matriz(bit_sequence_key)
 
             # FUNÇÃO PARA DESLOCAR AS LINHAS ASSIM COMO PEDIDO NO ALGORITMO AES
             def shift_rows(state):
@@ -197,214 +236,350 @@ match escolha:
 
 
             keys = key_expansion(matriz_key, s_box)
-
-            print(keys)
-                
+            
+            
+            # Variavel que recebe a mensagem criptografada
+            mesage_cripted = ""
             # SEPARA A MENSAGEM EM BLOCOS DE 16 BYTES E CRIPTOGRAFA TODOS ELES
             for block in range(0, len(mesage), 16):
                 bit_sequence_mesage = ""
                 # Mensagem em bits
                 for byte_sequence in mesage[block:block+16].encode('utf-8'):
                     bit_sequence_mesage += f'{byte_sequence:08b}'
-                matriz_mesage = cria_matriz(bit_sequence_mesage)
+                matriz_mesage = create_matriz(bit_sequence_mesage)
 
+                
                 # PRIMEIRA RODADA APENAS ADD A CHAVE
                 #INCLUI A CHAVE DE RODADA
+                matriz_mesage = add_round_key(matriz_mesage, keys[1])
+                
 
                 # 9 RODADAS DE MALUCO
-                for i in range(9):
+                for i in range(8):
                     # SUBSTITUÇÃO DE BYTES
                     matriz_mesage = sub_bytes(matriz_mesage, s_box)
+                    
                     # DESLOCAMENTO DE LINHAS
                     matriz_mesage = shift_rows(matriz_mesage)
+                    
                     # EMBARALHAMENTO DE COLUNAS
                     matriz_mesage = mix_columns(matriz_mesage)
+                    
                     # INCLUI A CHAVE DE RODADA
-
+                    matriz_mesage = add_round_key(matriz_mesage, keys[i+2])
+                    
 
                 #10° RODADA DE MALUCO
                 # SUBSTITUÇÃO DE BYTES
                 matriz_mesage = sub_bytes(matriz_mesage, s_box)
+                
                 # DESLOCAMENTO DE LINHAS
                 matriz_mesage = shift_rows(matriz_mesage)
+                
                 # INCLUI A CHAVE DE RODADA
-                matriz_mesage = add_round_key(matriz_mesage, matriz_key)
+                matriz_mesage = add_round_key(matriz_mesage, keys[10])
 
 
+                for line in matriz_mesage:
+                    for caracter in line:
+                        mesage_cripted += caracter
+                
+            #CONVERTER BITS EM STRING NORMAL
+            mesage_cripted = bits_to_hex(mesage_cripted)
 
+            print(f'Mensagem criptografada: {mesage_cripted}')
+
+
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
         if escolha_AES == 3:
-            print()
-        '''
-        def sub_bytes(state):
-            for i in range(4):
-                for j in range(4):
-                    state[i][j] = s_box[state[i][j]]
+            # Recebe a mensagem criptografada e a chave para a decifração AES
+            mesage_cripted = input("Digite a mensagem criptografada: ")
+            key = input("Digite a chave AES de 128 bits(16 caracteres): ")
 
-        def inv_sub_bytes(state):
-            for i in range(4):
-                for j in range(4):
-                    state[i][j] = inv_s_box[state[i][j]]
+            # Chave em bits
+            bit_sequence_key = ""
+            for byte_sequence in key.encode('utf-8'):
+                bit_sequence_key += f'{byte_sequence:08b}'
 
-        # Função para adicionar a chave de round ao estado
-        def add_round_key(state, round_key):
-            for i in range(4):
-                for j in range(4):
-                    state[i][j] ^= round_key[i][j]
+            # Função que transforma a mensagem criptografada em blocos 4x4
+            def create_matriz(mesage):
+                matriz = [[0 for _ in range(4)] for _ in range(4)]
 
-        def encrypt(plaintext, key):
-            # Converter a chave em uma matriz 4x4
-            round_key = key_schedule(key)
+                # Preenchimento da matriz com os valores da mensagem em bits
+                for i in range(4):
+                    for j in range(4):
+                        matriz[i][j] = mesage[0:8]
+                        mesage = mesage[8:]
+                return matriz
 
-            # Converter o texto plano em uma matriz 4x4
-            state = [[0] * 4 for _ in range(4)]
-            for i in range(4):
-                for j in range(4):
-                    state[j][i] = plaintext[i * 4 + j]
+            matriz_key = create_matriz(bit_sequence_key)
 
-            # Adicionar a chave inicial ao estado
-            add_round_key(state, round_key[0])
+            # FUNÇÃO AUXILIAR PARA mix_columns utilizando a multiplicação de Galois
+            def galois_multiply(a, b):
+                p = 0
+                for i in range(8):
+                    if b & 1:
+                        p ^= a
+                    carry = a & 0x80  # Bit mais significativo
+                    a = (a << 1) & 0xFF
+                    if carry:
+                        a ^= 0x1B  # Valor fixo do AES
+                    b >>= 1
 
-            # Executar as 10 rodadas do algoritmo AES
-            for r in range(1, 11):
-                sub_bytes(state)
-                shift_rows(state)
-                if r != 10:
-                    mix_columns(state)
-                add_round_key(state, round_key[r])
+                return p
 
-            # Converter o estado criptografado de volta para um vetor
-            ciphertext = []
-            for i in range(4):
-                for j in range(4):
-                    ciphertext.append(state[j][i])
+            # FUNÇÃO AUXILIAR PARA mix_columns
+            def mix_column(column):
+                mixed_column = []
+                for i in range(4):
+                    mixed_column.append(galois_multiply(column[0], 0x0E) ^
+                                        galois_multiply(column[1], 0x0B) ^
+                                        galois_multiply(column[2], 0x0D) ^
+                                        galois_multiply(column[3], 0x09))
+                    column = column[1:] + [column[0]]  # Shift para a esquerda
 
-            return ciphertext
+                return mixed_column
 
-        def decrypt(ciphertext, key):
-            # Converter a chave em uma matriz 4x4
-            round_key = key_schedule(key)
-
-            # Converter o texto cifrado em uma matriz 4x4
-            state = [[0] * 4 for _ in range(4)]
-            for i in range(4):
-                for j in range(4):
-                    state[j][i] = ciphertext[i * 4 + j]
-
-            # Adicionar a chave de round final ao estado
-            add_round_key(state, round_key[10])
-
-            # Executar as 10 rodadas inversas do algoritmo AES
-            for r in range(9, 0, -1):
-                inv_shift_rows(state)
-                inv_sub_bytes(state)
-                add_round_key(state, round_key[r])
-                if r != 1:
-                    inv_mix_columns(state)
-
-            # Converter o estado descriptografado de volta para um vetor
-            plaintext = []
-            for i in range(4):
-                for j in range(4):
-                    plaintext.append(state[j][i])
-
-            return plaintext
-
-        # Função para agendar as chaves de round
-        def key_schedule(key):
-            rcon = [
-                    [0x00, 0x00, 0x00, 0x00],
-                    [0x01, 0x00, 0x00, 0x00],
-                    [0x02, 0x00, 0x00, 0x00],
-                    [0x04, 0x00, 0x00, 0x00],
-                    [0x08, 0x00, 0x00, 0x00],
-                    [0x10, 0x00, 0x00, 0x00],
-                    [0x20, 0x00, 0x00, 0x00],
-                    [0x40, 0x00, 0x00, 0x00],
-                    [0x80, 0x00, 0x00, 0x00],
-                    [0x1b, 0x00, 0x00, 0x00],
-                    [0x36, 0x00, 0x00, 0x00]
+            # FUNÇÃO PARA DESFAZER A MISTURA DAS COLUNAS
+            def inv_mix_columns(state):
+                inv_mix_matrix = [
+                    [0x0E, 0x0B, 0x0D, 0x09],
+                    [0x09, 0x0E, 0x0B, 0x0D],
+                    [0x0D, 0x09, 0x0E, 0x0B],
+                    [0x0B, 0x0D, 0x09, 0x0E]
                 ]
-            round_keys = [[]] * 11
-            round_keys[0] = key
 
-            for r in range(1, 11):
-                temp = [0] * 4
-                for i in range(4):
-                    temp[i] = round_keys[r - 1][(i - 1) % 4]
-
-                if r % 4 == 0:
-                    temp = sub_word(rot_word(temp))
+                for j in range(4):
+                    column = [int(state[i][j], 2) for i in range(4)]
+                    mixed_column = inv_mix_column(column)
                     for i in range(4):
-                        temp[i] ^= rcon[r // 4][i]
+                        state[i][j] = format(mixed_column[i], '08b')  # Convertendo de volta para string binária
 
-                round_keys[r] = []
+                return state
+
+            # FUNÇÃO AUXILIAR PARA inv_mix_columns
+            def inv_mix_column(column):
+                mixed_column = []
                 for i in range(4):
-                    round_keys[r].append(round_keys[r - 1][i] ^ temp[i])
+                    mixed_column.append(galois_multiply(column[0], 0x0E) ^
+                                        galois_multiply(column[1], 0x0B) ^
+                                        galois_multiply(column[2], 0x0D) ^
+                                        galois_multiply(column[3], 0x09))
+                    column = column[1:] + [column[0]]  # Shift para a esquerda
 
-            return round_keys
+                return mixed_column
 
-        # Função para rotacionar uma palavra de 4 bytes
-        def rot_word(word):
-            return word[1:] + word[:1]
+            # FUNÇÃO INVERSA DE SUBSTITUIÇÃO DE BYTES
+            def inv_sub_bytes(state, inv_s_box):
+                for i in range(4):
+                    for j in range(4):
+                        byte = state[i][j]
+                        row = int(byte[:4], 2)
+                        col = int(byte[4:], 2)
+                        substituted_byte = inv_s_box[row * 16 + col]
+                        state[i][j] = f'{substituted_byte:08b}'
 
-        # Função para substituir cada byte de uma palavra de 4 bytes usando a S-Box
-        def sub_word(word):
-            for i in range(4):
-                word[i] = s_box[word[i]]
-            return word
+                return state
 
-        # Função para deslocar as linhas da matriz de estado
-        def shift_rows(state):
-            for i in range(1, 4):
-                state[i] = state[i][i:] + state[i][:i]
+            # FUNÇÃO INVERSA DE DESLOCAMENTO DE LINHAS
+            def inv_shift_rows(state):
+                # Deslocamento da segunda linha em 1 posição para a direita
+                state[1] = [state[1][3]] + state[1][:3]
 
-        def inv_shift_rows(state):
-            for i in range(1, 4):
-                state[i] = state[i][-i:] + state[i][:-i]
+                # Deslocamento da terceira linha em 2 posições para a direita
+                state[2] = state[2][2:] + state[2][:2]
 
-        # Função para misturar as colunas da matriz de estado
-        def mix_columns(state):
-            for i in range(4):
-                column = [state[j][i] for j in range(4)]
-                state[0][i] = mul(0x02, column[0]) ^ mul(0x03, column[1]) ^ column[2] ^ column[3]
-                state[1][i] = column[0] ^ mul(0x02, column[1]) ^ mul(0x03, column[2]) ^ column[3]
-                state[2][i] = column[0] ^ column[1] ^ mul(0x02, column[2]) ^ mul(0x03, column[3])
-                state[3][i] = mul(0x03, column[0]) ^ column[1] ^ column[2] ^ mul(0x02, column[3])
+                # Deslocamento da quarta linha em 3 posições para a direita
+                state[3] = state[3][1:] + [state[3][0]]
 
-        def inv_mix_columns(state):
-            for i in range(4):
-                column = [state[j][i] for j in range(4)]
-                state[0][i] = mul(0x0e, column[0]) ^ mul(0x0b, column[1]) ^ mul(0x0d, column[2]) ^ mul(0x09, column[3])
-                state[1][i] = mul(0x09, column[0]) ^ mul(0x0e, column[1]) ^ mul(0x0b, column[2]) ^ mul(0x0d, column[3])
-                state[2][i] = mul(0x0d, column[0]) ^ mul(0x09, column[1]) ^ mul(0x0e, column[2]) ^ mul(0x0b, column[3])
-                state[3][i] = mul(0x0b, column[0]) ^ mul(0x0d, column[1]) ^ mul(0x09, column[2]) ^ mul(0x0e, column[3])
+                return state
 
-        # Função para multiplicar dois bytes no corpo de Galois
-        def mul(a, b):
-            result = 0
-            while b:
-                if b & 0x01:
-                    result ^= a
-                if a & 0x80:
-                    a = (a << 1) ^ 0x1b
-                else:
-                    a <<= 1
-                b >>= 1
-            return result
+            #FUNÇÃO QUE DEFINE AS SUBCHAVES DE EXPANÇÃO PARA CADA RODADA DO AES
+            def key_expansion(key, s_box):
+                round_constants = ['00000001', 
+                                    '00000010', 
+                                    '00000100', 
+                                    '00001000', 
+                                    '00010000', 
+                                    '00100000', 
+                                    '01000000', 
+                                    '10000000', 
+                                    '00011011', 
+                                    '00110110']
+                expanded_key = [key]
 
-        # Teste
-        plaintext = [0x32, 0x88, 0x31, 0xe0, 0x43, 0x5a, 0x31, 0x37, 0xf6, 0x30, 0x98, 0x07, 0xa8, 0x8d, 0xa2, 0x34]
-        key = [0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c]
+                # Realiza a expansão da chave
+                for i in range(10):
+                    prev_key = expanded_key[-1]
+                    new_key = []
 
-        ciphertext = encrypt(plaintext, key)
-        decrypted_plaintext = decrypt(ciphertext, key)
+                    # Rotação da coluna
+                    temp = prev_key[1:] + [prev_key[0]]
+                    
 
-        print("Texto Cifrado: ", ciphertext)
-        print("Texto Descriptografado: ", decrypted_plaintext)
-        '''
+                    # Substituição pelos valores da S-Box
+                    new_key = sub_bytes(temp, s_box)
+
+                    # Aplica XOR com o round constant
+                    round_constant = round_constants[i]
+                    new_key[0][0] = format(int(new_key[0][0], 2) ^ int(round_constant, 2), '08b')
+
+                    # Aplica XOR com a palavra anterior da chave
+                    for i in range(4):
+                        for j in range(4):
+                            new_key[i][j] = format(int(new_key[i][j], 2) ^ int(prev_key[i][j], 2), '08b')
+
+                    expanded_key.append(new_key)
+
+                return expanded_key
+
+            # FUNÇÃO SUBSTITUIÇÃO DE BYTES APENAS PARA A FUNÇAO QUE FAZ AS SUBCHAVES
+            def sub_bytes(state, s_box):
+                for i in range(4):
+                    for j in range(4):
+                        byte = state[i][j]
+                        row = int(byte[:4], 2)
+                        col = int(byte[4:], 2)
+                        substituted_byte = s_box[row * 16 + col]
+                        state[i][j] = f'{substituted_byte:08b}'
+
+                return state
+
+            # FUNÇÃO QUE DESFAZ A ADIÇÃO DA CHAVE DE RODADA
+            def inv_add_round_key(state, key):
+                for i in range(4):
+                    for j in range(4):
+                        state[i][j] = format(int(state[i][j], 2) ^ int(key[i][j], 2), '08b')
+
+                return state
+
+            keys = key_expansion(matriz_key, s_box)
+
+            # Variável que recebe a mensagem descriptografada
+            mesage_decrypted = ""
+
+            # SEPARA A MENSAGEM CRIPTOGRAFADA EM BLOCOS DE 16 BYTES E DECRIPTOGRAFA TODOS ELES
+            for block in range(0, len(mesage_cripted), 32):
+                bit_sequence_mesage = ""
+                # Mensagem criptografada em bits
+                for i in range(block, block + 32, 2):
+                    byte = mesage_cripted[i:i+2]
+                    bit_sequence_mesage += f'{int(byte, 16):08b}'
+                matriz_mesage = create_matriz(bit_sequence_mesage)
+
+                
+                # 10° RODADA DE MALUCO (INVERSA)
+                # INCLUI A CHAVE DE RODADA
+                matriz_mesage = inv_add_round_key(matriz_mesage, keys[10])
+                
+                # DESLOCAMENTO DE LINHAS (INVERSO)
+                matriz_mesage = inv_shift_rows(matriz_mesage)
+                
+                # INVERSA DE SUBSTITUIÇÃO DE BYTES
+                matriz_mesage = inv_sub_bytes(matriz_mesage, inv_s_box)
+                
+
+                # 9 RODADAS DE MALUCO (INVERSA)
+                for i in range(8, 0, -1):
+                    # INCLUI A CHAVE DE RODADA
+                    matriz_mesage = inv_add_round_key(matriz_mesage, keys[i+1])
+                    
+                    # INVERSA DE EMBARALHAMENTO DE COLUNAS
+                    matriz_mesage = inv_mix_columns(matriz_mesage)
+                    
+                    # DESLOCAMENTO DE LINHAS (INVERSO)
+                    matriz_mesage = inv_shift_rows(matriz_mesage)
+                    
+                    # INVERSA DE SUBSTITUIÇÃO DE BYTES
+                    matriz_mesage = inv_sub_bytes(matriz_mesage, inv_s_box)
+                    
+
+                # PRIMEIRA RODADA APENAS REMOVE A CHAVE
+                # INCLUI A CHAVE DE RODADA
+                matriz_mesage = inv_add_round_key(matriz_mesage, keys[1])
+
+
+                for line in matriz_mesage:
+                    for character in line:
+                        mesage_decrypted += character
+            # CONVERTER BITS EM STRING NORMAL
+            mesage_decrypted = bits_to_string(mesage_decrypted)
+
+            print(f'Mensagem descriptografada: {mesage_decrypted}')
+
     case 2:
-        print("ola mundo2")
+        "1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - OAEP \n3 - Cifração/decifração assimétrica RSA usando OAEP \n"
+        escolha_RSA = int(input("1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - OAEP \n3 - Cifração/decifração assimétrica RSA usando OAEP \n"))
+        if escolha_RSA == 1:
+            print()
+
+            def is_prime(n, k=10):
+                """Função que implementa o teste de Miller-Rabin para verificar a primalidade de um número."""
+                if n == 2 or n == 3:
+                    return True
+                if n < 2 or n % 2 == 0:
+                    return False
+
+                r, s = 0, n - 1
+                while s % 2 == 0:
+                    r += 1
+                    s //= 2
+
+                for _ in range(k):
+                    a = random.randint(2, n - 2)
+                    x = pow(a, s, n)
+                    if x == 1 or x == n - 1:
+                        continue
+
+                    for _ in range(r - 1):
+                        x = pow(x, 2, n)
+                        if x == n - 1:
+                            break
+                    else:
+                        return False
+
+                return True
+
+
+            def generate_prime(bits):
+                """Função para gerar um número primo com a quantidade de bits especificada."""
+                while True:
+                    p = random.getrandbits(bits)
+                    p |= (1 << bits - 1) | 1  # Define o bit mais significativo e o bit menos significativo como 1
+                    if is_prime(p):
+                        return p
+
+
+            def generate_keys():
+                """Função para gerar as chaves RSA."""
+                bits = 1024  # Número de bits para os primos p e q
+
+                p = generate_prime(bits)
+                q = generate_prime(bits)
+
+                n = p * q
+                phi = (p - 1) * (q - 1)
+
+                # Encontrar um expoente de criptografia e seu inverso multiplicativo módulo phi(n)
+                e = random.randint(2, phi - 1)
+                while True:
+                    if math.gcd(e, phi) == 1:
+                        break
+                    e = random.randint(2, phi - 1)
+
+                d = pow(e, -1, phi)  # Calcula o inverso multiplicativo de e módulo phi(n)
+
+                public_key = (n, e)
+                private_key = (n, d)
+
+                return public_key, private_key
+
+
+            # Exemplo de uso:
+            public_key, private_key = generate_keys()
+            print("Chave pública:", public_key)
+            print("Chave privada:", private_key)
     case 3:
         print("ola mundo3")
     case 4:
