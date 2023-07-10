@@ -511,58 +511,11 @@ match escolha:
 
     case 2:
 
-        def extended_gcd(a, b):
-            """Calcula o MDC estendido entre dois números."""
-            if a == 0:
-                return b, 0, 1
-            else:
-                g, y, x = extended_gcd(b % a, a)
-                return g, x - (b // a) * y, y
-
-
-        def mod_inverse(a, m):
-            """Calcula o inverso multiplicativo de 'a' módulo 'm'."""
-            g, x, _ = extended_gcd(a, m)
-            if g == 1:
-                return x % m
-
-
-        def generate_keys(key_size):
-            """Gera as chaves pública e privada RSA utilizando OAEP."""
-            # Gerar dois primos grandes e distintos
-            p = generate_prime(key_size // 2)
-            q = generate_prime(key_size // 2)
-            n = p * q
-            # Totiente de Euler
-            phi_n = (p - 1) * (q - 1)
-
-            # Encontrar um expoente de criptografia e seu inverso multiplicativo módulo phi(n)
-            e = random.randint(2, phi_n - 1)
-            while True:
-                if math.gcd(e, phi_n) == 1:
-                    break
-                e = random.randint(2, phi_n - 1)
-            d = mod_inverse(e, phi_n)
-
-            # Chave pública: (n, e)
-            # Chave privada: (n, d)
-            return (n, e), (n, d)
-
-
-        def generate_prime(bit_length):
-            """Gera um número primo aleatório com a quantidade de bits especificada."""
-            while True:
-                num = random.getrandbits(bit_length)
-                num |= (1 << bit_length - 1) | 1  # Define o bit mais significativo e o bit menos significativo como 1
-                if is_prime(num):
-                    return num
-
-
-        def is_prime(n, k=40):
-            """Realiza o teste de Miller-Rabin para verificar a primalidade de um número."""
+        def is_prime(n, k=5):
+            """Verifica se um número n é primo usando o teste de Miller-Rabin."""
             if n <= 1:
                 return False
-            if n <= 3:
+            if n == 2 or n == 3:
                 return True
             if n % 2 == 0:
                 return False
@@ -573,149 +526,94 @@ match escolha:
                 s //= 2
 
             for _ in range(k):
-                a = random.randint(2, n - 2)
+                a = random.randint(2, n - 1)
                 x = pow(a, s, n)
                 if x == 1 or x == n - 1:
                     continue
-
                 for _ in range(r - 1):
                     x = pow(x, 2, n)
                     if x == n - 1:
                         break
                 else:
                     return False
-
             return True
 
 
-        def pad(message, block_size):
-            # Tamanho do hash
-            hash_size = 224
-
-            # Tamanho do espaço aleatório
-            random_size = (block_size - len(message) - 2) * (hash_size - 2)
-
-            # Gerar sequência aleatória
-            r = random.getrandbits(random_size)
-            r_bytes = r.to_bytes((random_size + 7) // 8, "big")
-
-            # Codificar a mensagem
-            message_encoded = message.encode("utf-8")  # Use a codificação apropriada para a mensagem
-
-            '''
-            print(message_encoded)
-            print(f'mensagem encoded digest {hashlib.sha3_224(message_encoded).digest()}')
-            print(f'r_bytes digest {hashlib.sha3_224(r_bytes).digest()}')
-            '''
-
-            # Gerar hashes
-            hash1 = hashlib.sha3_224(message_encoded).digest()
-            hash2 = hashlib.sha3_224(r_bytes).digest()
-
-            # Realizar preenchimento
-            padded_message = b"\x00" * ((block_size - len(message) - 2) - 2 * hash_size // 8) + b"\x01" + hash1 + hash2 + r_bytes
-
-            return padded_message
+        def generate_prime(bits):
+            """Gera um número primo aleatório com o número especificado de bits."""
+            while True:
+                n = random.randint(2 ** (bits - 1), 2 ** bits - 1)
+                if is_prime(n):
+                    return n
 
 
-        '''
-        def unpad(padded_message, block_size):
-            """Remove o preenchimento OAEP do bloco de mensagem."""
-            # Tamanho do hash
-            hash_size = 224
+        def extended_gcd(a, b):
+            """Calcula o máximo divisor comum (MDC) e os coeficientes de Bézout."""
+            if a == 0:
+                return b, 0, 1
+            gcd, x1, y1 = extended_gcd(b % a, a)
+            x = y1 - (b // a) * x1
+            y = x1
+            return gcd, x, y
+
+
+        def mod_inverse(a, m):
+            """Calcula o inverso multiplicativo modular de a (mod m)."""
+            gcd, x, _ = extended_gcd(a, m)
+            if gcd != 1:
+                raise ValueError("O inverso multiplicativo modular não existe.")
+            return x % m
+
+
+        def generate_keypair(keysize):
+            """Gera um par de chaves RSA usando o tamanho de chave especificado."""
+            p = generate_prime(keysize // 2)
+            q = generate_prime(keysize // 2)
+            n = p * q
+            phi = (p - 1) * (q - 1)
+
+            e = random.randint(2, phi - 1)
+            while math.gcd(e, phi) != 1:
+                e = random.randint(2, phi - 1)
+
+            d = mod_inverse(e, phi)
+
+            return (n, e), (n, d)
+
+
+        def pad_message(message, key_length):
+            """Realiza a padronização OEAP da mensagem."""
+            if len(message) > key_length - 2 * math.ceil(math.log2(key_length) / 8) - 2:
+                raise ValueError("Tamanho da mensagem excede o limite suportado.")
             
-            
-            # Verificar se o bloco é válido
-            print(len(padded_message))
-            print(block_size)
-            if len(padded_message) != block_size:
-                raise ValueError("Bloco de mensagem inválido")
-            
+            pad_length = key_length - len(message) - 2 * math.ceil(math.log2(key_length) / 8) - 2
+            padding = b"\x00" * pad_length
 
-            # Encontrar posição do byte de valor 1
-            index = padded_message.find(b"\x01")
-            if index == -1:
-                raise ValueError("Byte de preenchimento inválido")
-
-            # Separar as partes do bloco
-            hash1 = padded_message[index + 1:index + 1 + hash_size]
-            hash2 = padded_message[index + 1 + hash_size:index + 1 + 2 * hash_size]
-            r_bytes = padded_message[index + 1 + 2 * hash_size:]
-
-            
-            # Verificar as hashes
-            if hashlib.sha3_224(padded_message[:index]).digest() != hash1:
-                raise ValueError("Hash inválida")
-            if hashlib.sha3_224(r_bytes).digest() != hash2:
-                raise ValueError("Hash inválida")
-            
-
-            # Remover o preenchimento
-            message = r_bytes.strip(b"\x00")
-
-            return message.decode("utf-8")
-        '''
-        
-        def unpad(padded_message, block_size):
-            # Tamanho do hash
-            hash_size = 224
-
-            # Verificar o preenchimento OAEP
-            padded_length = block_size - hash_size // 8 - 2
-            separator = padded_message[:padded_length].rindex(b"\x01")
-            message_start = separator + 1
-            message_end = len(padded_message)
-            message = padded_message[message_start:message_end]
-
-            return message.decode("utf-8")
+            return b"\x00" + padding + b"\x01" + padding + message
 
 
-        def encrypt(message, public_key):
-            """Criptografa a mensagem usando a chave pública RSA com OAEP."""
+        def unpad_message(padded_message):
+            """Remove o padding OEAP da mensagem."""
+            padding_start = padded_message.rindex(b"\x00") + 1
+            return padded_message[padding_start:]
+
+
+        def rsa_encrypt(message, public_key):
+            """Cifra a mensagem usando a chave pública RSA."""
             n, e = public_key
-            block_size = (n.bit_length() + 7) // 8  # Correção para cálculo do tamanho do bloco
-
-            # Realizar o preenchimento OAEP
-            padded_message = pad(message, block_size)
-
-            # Dividir a mensagem em blocos do tamanho adequado
-            blocks = [padded_message[i:i + block_size] for i in range(0, len(padded_message), block_size)]
-
-            # Criptografar cada bloco
-            encrypted_blocks = []
-            for block in blocks:
-                m = int.from_bytes(block, "big")
-                c = pow(m, e, n)
-                encrypted_blocks.append(c.to_bytes(block_size, "big"))
-
-            # Concatenar os blocos criptografados
-            encrypted_message = b"".join(encrypted_blocks)
-
-            return encrypted_message
+            padded_message = pad_message(message, n.bit_length() // 8)
+            m = int.from_bytes(padded_message, "big")
+            c = pow(m, e, n)
+            return c.to_bytes((c.bit_length() + 7) // 8, "big")
 
 
-        def decrypt(encrypted_message, private_key):
-            """Descriptografa a mensagem usando a chave privada RSA com OAEP."""
+        def rsa_decrypt(ciphertext, private_key):
+            """Decifra o texto cifrado usando a chave privada RSA."""
             n, d = private_key
-            block_size = (n.bit_length() + 7) // 8  # Correção para cálculo do tamanho do bloco
-
-            # Dividir a mensagem criptografada em blocos do tamanho adequado
-            encrypted_blocks = [encrypted_message[i:i + block_size] for i in range(0, len(encrypted_message), block_size)]
-
-            # Descriptografar cada bloco
-            decrypted_blocks = []
-            for block in encrypted_blocks:
-                c = int.from_bytes(block, "big")
-                m = pow(c, d, n)
-                decrypted_blocks.append(m.to_bytes(block_size, "big"))
-
-            # Concatenar os blocos descriptografados
-            decrypted_message = b"".join(decrypted_blocks)
-
-            # Remover o preenchimento OAEP
-            message = unpad(decrypted_message, block_size)
-
-            return message
+            c = int.from_bytes(ciphertext, "big")
+            m = pow(c, d, n)
+            padded_message = m.to_bytes((m.bit_length() + 7) // 8, "big")
+            return unpad_message(padded_message)
 
         
         "1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - OAEP \n3 - Cifração/decifração assimétrica RSA usando OAEP \n"
@@ -724,8 +622,8 @@ match escolha:
         if escolha_RSA == 1:
             print()
 
-            # Exemplo de uso:
-            public_key, private_key = generate_keys(1024)
+            # Gera um par de chaves RSA
+            public_key, private_key = generate_keypair(1024)
             # Chave pública: (n, e)
             # Chave privada: (n, d)
             print("Chave pública:", public_key)
@@ -734,45 +632,26 @@ match escolha:
         if escolha_RSA == 2:
             print()
             # Recebe a mensagem e a chave para a cifra RSA
-            message = input("Digite a mensagem a ser cifrada: ")
+            message = input("Digite a mensagem a ser criptografada: ").encode()
             public_key = input("Digite a chave publica RSA 'n, e': ").strip().split(',')
             public_key = (int(public_key[0]), int(public_key[1]))
 
-            # Criptografar a mensagem com a chave pública
-            encrypted_message = encrypt(message, public_key)
-            print(encrypted_message)
-            encrypted_message = base64.b64encode(encrypted_message).decode()
+            # Cifra a mensagem usando a chave pública e converte o texto cifrado para base64
+            ciphertext = base64.b64encode(rsa_encrypt(message, public_key))
             
-            print("Mensagem criptografada:", encrypted_message)
-            
-
+            print("Mensagem criptografada:", ciphertext.decode())
 
         if escolha_RSA == 3:
             print()
-            '''
             # Recebe a mensagem criptografada em base64 e a chave privada RSA
-            encrypted_message_base64 = input("Digite a mensagem criptografada em base64: ")
+            encrypted_message_base64 = input("Digite a mensagem criptografada em base64: ").encode()
             private_key = input("Digite a chave privada RSA 'n, d': ").strip().split(',')
             private_key = (int(private_key[0]), int(private_key[1]))
 
-            # Decodifica a mensagem criptografada de base64
-            encrypted_message = base64.b64decode(encrypted_message_base64)
+            # Decifra o texto cifrado usando a chave privada
+            decrypted_message = rsa_decrypt(base64.b64decode(encrypted_message_base64), private_key)
 
-            # Descriptografa a mensagem com a chave privada
-            decrypted_message = decrypt(encrypted_message, private_key)
-
-            print("Mensagem descriptografada:", decrypted_message)
-            '''
-            # Recebe a mensagem criptografada e a chave para a decifração RSA
-            message = input("Digite a mensagem a ser descifratada: ")
-            private_key = input("Digite a chave privada RSA 'n, d': ").strip().split(',')
-            private_key = (int(private_key[0]), int(private_key[1]))
-
-            message = base64.b64decode(message)
-
-            # Descriptografar a mensagem com a chave privada
-            decrypted_message = decrypt(message, private_key)
-            print("Mensagem descriptografada:", decrypted_message)
+            print("Mensagem descriptografada:", decrypted_message.decode())
 
     case 3:
         print("ola mundo3")
