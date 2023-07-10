@@ -273,7 +273,7 @@ match escolha:
                 matriz_message = add_round_key(matriz_message, keys[1])
                 
 
-                # 9 RODADAS DE MALUCO
+                # 9 RODADAS
                 for i in range(8):
                     # SUBSTITUÇÃO DE BYTES
                     matriz_message = sub_bytes(matriz_message, s_box)
@@ -288,7 +288,7 @@ match escolha:
                     matriz_message = add_round_key(matriz_message, keys[i+2])
                     
 
-                #10° RODADA DE MALUCO
+                #10° RODADA
                 # SUBSTITUÇÃO DE BYTES
                 matriz_message = sub_bytes(matriz_message, s_box)
                 
@@ -488,7 +488,7 @@ match escolha:
                 matriz_message = create_matriz(bit_sequence_message)
 
                 
-                # 10° RODADA DE MALUCO (INVERSA)
+                # 10° RODADA DE (INVERSA)
                 # INCLUI A CHAVE DE RODADA
                 matriz_message = inv_add_round_key(matriz_message, keys[10])
                 
@@ -499,7 +499,7 @@ match escolha:
                 matriz_message = inv_sub_bytes(matriz_message, inv_s_box)
                 
 
-                # 9 RODADAS DE MALUCO (INVERSA)
+                # 9 RODADAS (INVERSA)
                 for i in range(8, 0, -1):
                     # INCLUI A CHAVE DE RODADA
                     matriz_message = inv_add_round_key(matriz_message, keys[i+1])
@@ -529,8 +529,8 @@ match escolha:
 
     case 2:
 
-        def is_prime(n, k=5):
-            """Verifica se um número n é primo usando o teste de Miller-Rabin."""
+        def is_prime(n, k=7):
+            #Verifica se um número n é primo usando o teste de Miller-Rabin.
             if n <= 1:
                 return False
             if n == 2 or n == 3:
@@ -558,7 +558,7 @@ match escolha:
 
 
         def generate_prime(bits):
-            """Gera um número primo aleatório com o número especificado de bits."""
+            #Gera um número primo aleatório com o número especificado de bits.
             while True:
                 n = random.randint(2 ** (bits - 1), 2 ** bits - 1)
                 if is_prime(n):
@@ -566,7 +566,7 @@ match escolha:
 
 
         def extended_gcd(a, b):
-            """Calcula o máximo divisor comum (MDC) e os coeficientes de Bézout."""
+            #Calcula o máximo divisor comum (MDC) e os coeficientes de Bézout.
             if a == 0:
                 return b, 0, 1
             gcd, x1, y1 = extended_gcd(b % a, a)
@@ -576,7 +576,7 @@ match escolha:
 
 
         def mod_inverse(a, m):
-            """Calcula o inverso multiplicativo modular de a (mod m)."""
+            #Calcula o inverso multiplicativo modular de a (mod m).
             gcd, x, _ = extended_gcd(a, m)
             if gcd != 1:
                 raise ValueError("O inverso multiplicativo modular não existe.")
@@ -584,7 +584,7 @@ match escolha:
 
 
         def generate_keypair(keysize):
-            """Gera um par de chaves RSA usando o tamanho de chave especificado."""
+            #Gera um par de chaves RSA usando o tamanho de chave especificado.
             p = generate_prime(keysize // 2)
             q = generate_prime(keysize // 2)
             n = p * q
@@ -600,7 +600,7 @@ match escolha:
 
 
         def pad_message(message, key_length):
-            """Realiza a padronização OEAP da mensagem."""
+            # Realiza a padronização OEAP da mensagem.
             if len(message) > key_length - 2 * math.ceil(math.log2(key_length) / 8) - 2:
                 raise ValueError("Tamanho da mensagem excede o limite suportado.")
             
@@ -611,13 +611,13 @@ match escolha:
 
 
         def unpad_message(padded_message):
-            """Remove o padding OEAP da mensagem."""
+            # Remove o padding OEAP da mensagem.
             padding_start = padded_message.rindex(b"\x00") + 1
             return padded_message[padding_start:]
 
 
         def rsa_encrypt(message, public_key):
-            """Cifra a mensagem usando a chave pública RSA."""
+            # Cifra a mensagem usando a chave pública RSA.
             n, e = public_key
             padded_message = pad_message(message, n.bit_length() // 8)
             m = int.from_bytes(padded_message, "big")
@@ -626,7 +626,7 @@ match escolha:
 
 
         def rsa_decrypt(ciphertext, private_key):
-            """Decifra o texto cifrado usando a chave privada RSA."""
+            #Decifra o texto cifrado usando a chave privada RSA.
             n, d = private_key
             c = int.from_bytes(ciphertext, "big")
             m = pow(c, d, n)
