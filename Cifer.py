@@ -3,6 +3,7 @@ import random
 import math
 import hashlib
 import base64
+import secrets
 
 # função percorre a sequência de bits de 8 em 8 bits, 
 # converte cada byte binário em um valor decimal e, em seguida, 
@@ -18,7 +19,7 @@ def bits_to_string(bit_string):
     message = ''.join(byte_list)
     return message
 
-escolha = int(input("Escolha: \n1 - Cifração e decifração AES, chave 128 bits \n2 - Geração de chaves e cifra RSA \n3 - Assinatura RSA \n4 - Verificação\n"))
+escolha = int(input("Escolha: \n1 - Geração de chave 128 bits, Cifração e decifração AES \n2 - Geração de chaves e cifra RSA \n3 - Assinatura RSA \n4 - Verificação\n"))
 match escolha:
     case 1:
         # Transformação final, de uma string de bits para uma string hexadecimal
@@ -78,6 +79,23 @@ match escolha:
         escolha_AES = int(input("Digite: \n1 - Geração de chave de 128 bits \n2 - Cifração \n3 - Decifração\n"))
         if escolha_AES == 1:
             print()
+
+            def generate_random_string(length):
+                # Gera bytes aleatórios usando a biblioteca secrets
+                random_bytes = secrets.token_bytes(length-4)
+
+                # Codifica os bytes em base64 usando a função urlsafe_b64encode
+                random_base64 = base64.urlsafe_b64encode(random_bytes)
+
+                # Decodifica o resultado para obter uma string
+                random_string = random_base64.decode('utf-8')
+
+                return random_string
+
+            # Exemplo de uso
+            random_string = generate_random_string(16)
+            print(random_string)
+
         if escolha_AES == 2:
             # Recebe a mensagem e a chave para a cifra AES
             message = input("Digite a mensagem a ser cifrada: ")
