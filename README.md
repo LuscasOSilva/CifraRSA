@@ -1,4 +1,4 @@
-# CifraAES e RSA Unb
+# Cifra AES e RSA UnB
 Projeto Final para a disciplina Segurança computacional.
 
 Nesse projeto, temos um código para o funcionamento das cifras AES e RSA
@@ -21,12 +21,12 @@ Ao rodar o código, teremos as seguintes funções:
 - Cifração AES
 - Decifração AES
 
-- Geração de chaves (p e q primos com no mínimo de 1024 bits) primalidade Miller-Rabin
+- Geração de chaves RSA (p e q primos com no mínimo de 1024 bits) primalidade Miller-Rabin
 - Cifração RSA
 - Decifração RSA
+- Assinatura RSA
+- Verificação de assinatura RSA
 (Utilizando OAEP)
-
-Além de possibilidade de assinar e verificar assinatura has em um documento.
 
 # AES
 A chave AES é gerada de forma simples, com a biblioteca "secrets" para gerar aleatoriamente a chave que retorna uma sequencia de caracteres hexademais, que são tranformados em uma sequencia de 16 bytes na base 64.
@@ -57,6 +57,21 @@ O pedaço do codigo a seguir, public_key, private_key = generate_keypair(1024) c
 A cifração é feita com as seguintes funções:
 
 pad_message = Realiza a padronização OEAP da mensagem
+
 rsa_encrypt = Chama a função pad_message para o OAEP e cifra a mensagem usando a chave pública RSA
 unpad_message = Remove o padding OEAP da mensagem
 rsa_decrypt = Decifra o texto cifrado usando a chave privada RSA e retira a padronização OEAP com a unpad_message
+
+# Assinatura RSA
+
+A assinatura é feita baseada em uma mensagem que deve ser assinada, usando a biblioteca de hash (hashlib) com a chave privada e a função de Encriptação RSA
+
+A verificação é feita apenas fazendo a decriptação da mensagem com a assinatura e comparando com a mensagem original
+
+# Fontes
+
+https://www.nist.gov/publications/advanced-encryption-standard-aes
+https://www.youtube.com/watch?v=-lybDqNi-bM&t=1410s&ab_channel=DanielVecchiato
+https://www.youtube.com/watch?v=GAR1Ur_2IGk&ab_channel=F%C3%A1bricadeNoobs
+https://www.youtube.com/watch?v=-lybDqNi-bM&ab_channel=DanielVecchiato
+https://en.wikipedia.org/wiki/Optimal_asymmetric_encryption_padding

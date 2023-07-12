@@ -19,7 +19,7 @@ def bits_to_string(bit_string):
     message = ''.join(byte_list)
     return message
 
-escolha = int(input("Escolha: \n1 - Geração de chave 128 bits, Cifração e decifração AES \n2 - Geração de chaves e cifra RSA \n3 - Assinatura RSA \n4 - Verificação\n"))
+escolha = int(input("Escolha: \n1 - Cifra AES:\nGeração de chave 128 bits \nCifração e decifração \n\n2 - Cifra RSA: \nGeração de chaves \nCifração e decifração \nAssinatura e verificação\n"))
 match escolha:
     case 1:
         # Transformação final, de uma string de bits para uma string hexadecimal
@@ -76,7 +76,7 @@ match escolha:
             0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
             0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d,
         ]
-        escolha_AES = int(input("Digite: \n1 - Geração de chave de 128 bits \n2 - Cifração \n3 - Decifração\n"))
+        escolha_AES = int(input("\nDigite: \n1 - Geração de chave de 128 bits \n2 - Cifração \n3 - Decifração\n"))
         if escolha_AES == 1:
             print()
 
@@ -94,7 +94,7 @@ match escolha:
 
             # Exemplo de uso
             random_string = generate_random_string(16)
-            print(random_string)
+            print(f'Chave gerada: {random_string}\n')
 
         if escolha_AES == 2:
             # Recebe a mensagem e a chave para a cifra AES
@@ -527,6 +527,8 @@ match escolha:
 
             print(f'Mensagem descriptografada: {message_decrypted}')
 
+
+#++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     case 2:
 
         def is_prime(n, k=7):
@@ -633,9 +635,27 @@ match escolha:
             padded_message = m.to_bytes((m.bit_length() + 7) // 8, "big")
             return unpad_message(padded_message)
 
+        def sign_message(message, private_key):
+            """Assina uma mensagem usando a chave privada RSA."""
+            hash_value = hashlib.sha256(message).digest()
+            signature = rsa_encrypt(hash_value, private_key)
+            return signature
+
+        def verify_signature(message, signature, public_key):
+            """Verifica a assinatura de uma mensagem usando a chave pública RSA."""
+            hash_value = hashlib.sha256(message).digest()
+            decrypted_signature = rsa_decrypt(signature, public_key)
+            return decrypted_signature == hash_value
+
         
-        "1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - OAEP \n3 - Cifração/decifração assimétrica RSA usando OAEP \n"
-        escolha_RSA = int(input("\n1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - Cifração RSA usando OAEP\n3 - Decifração RSA usando OAEP \n"))
+        '''
+        1 - Geração de chaves (p e q primos com no mínimo de 1024 bits)
+        2 - OAEP 
+        3 - Cifração/decifração assimétrica RSA usando OAEP
+        4 - Assinatura RSA de uma mensagem 
+        5 - Verificação de assinatura RSA
+        '''
+        escolha_RSA = int(input("\n1 - Geração de chaves (p e q primos com no mínimo de 1024 bits) \n2 - Cifração RSA usando OAEP\n3 - Decifração RSA usando OAEP \n4 - Assinatura RSA de uma mensagem \n5 - Verificação de assinatura RSA\n"))
         
         if escolha_RSA == 1:
             print()
@@ -657,7 +677,7 @@ match escolha:
             # Cifra a mensagem usando a chave pública e converte o texto cifrado para base64
             ciphertext = base64.b64encode(rsa_encrypt(message, public_key))
             
-            print("Mensagem criptografada:", ciphertext.decode())
+            print("\nMensagem criptografada:", ciphertext.decode())
 
         if escolha_RSA == 3:
             print()
@@ -669,9 +689,33 @@ match escolha:
             # Decifra o texto cifrado usando a chave privada
             decrypted_message = rsa_decrypt(base64.b64decode(encrypted_message_base64), private_key)
 
-            print("Mensagem descriptografada:", decrypted_message.decode())
+            print("\nMensagem descriptografada:", decrypted_message.decode())
 
-    case 3:
-        print("ola mundo3")
-    case 4:
-        print("ola mundo4")
+        if escolha_RSA == 4:
+            print()
+            # Recebe a mensagem e a chave privada para a assinatura RSA
+            message = input("Digite a mensagem a ser assinada: ").encode()
+            private_key = input("Digite a chave privada RSA 'n, d': ").strip().split(',')
+            private_key = (int(private_key[0]), int(private_key[1]))
+
+            # Assina a mensagem usando a chave privada e converte a assinatura para base64
+            signature = base64.b64encode(sign_message(message, private_key))
+
+            print("Assinatura:", signature.decode())
+
+        if escolha_RSA == 5:
+            print()
+            # Recebe a mensagem, a assinatura em base64 e a chave pública para a verificação da assinatura
+            message = input("\nDigite a mensagem original: ").encode()
+            signature_base64 = input("\nDigite a assinatura em base64: ").encode()
+            public_key = input("\nDigite a chave pública RSA 'n, e': ").strip().split(',')
+            public_key = (int(public_key[0]), int(public_key[1]))
+
+            # Verifica a assinatura usando a chave pública
+            signature = base64.b64decode(signature_base64)
+            is_valid = verify_signature(message, signature, public_key)
+
+            if is_valid:
+                print("\nA assinatura é válida.")
+            else:
+                print("\nA assinatura é inválida.")
